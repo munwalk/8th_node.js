@@ -1,5 +1,214 @@
-코드는 https://github.com/munwalk/UMC에 따로 게시
 ![Image](https://github.com/user-attachments/assets/727dd2b6-5eef-4d5e-9001-208807652209)
+
+```
+-- 외래키 제약 끄기 (테이블 삭제 시 외래키 오류 방지)
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 기존 테이블 삭제 (존재하는 경우만 삭제됨)
+DROP TABLE IF EXISTS member_agree;
+DROP TABLE IF EXISTS review_image;
+DROP TABLE IF EXISTS review;
+DROP TABLE IF EXISTS member_mission;
+DROP TABLE IF EXISTS mission;
+DROP TABLE IF EXISTS store;
+DROP TABLE IF EXISTS region;
+DROP TABLE IF EXISTS member_prefer;
+DROP TABLE IF EXISTS food_category;
+DROP TABLE IF EXISTS member;
+DROP TABLE IF EXISTS terms;
+
+-- member: 사용자 기본 정보 테이블
+CREATE TABLE member (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(20),
+    gender VARCHAR(10),
+    age INT,
+    address VARCHAR(40),
+    spec_address VARCHAR(40),
+    phone_num VARCHAR(13),
+    status VARCHAR(15),
+    inactive_date DATETIME(6),
+    social_type VARCHAR(10),
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
+    email VARCHAR(50),
+    point INT
+);
+
+-- region: 지역 정보 테이블
+CREATE TABLE region (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(20),
+    created_at DATETIME(6),
+    updated_at DATETIME(6)
+);
+
+-- store: 가게 정보, 지역 테이블 참조
+CREATE TABLE store (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    region_id BIGINT,
+    name VARCHAR(50),
+    address VARCHAR(50),
+    score FLOAT,
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
+    FOREIGN KEY (region_id) REFERENCES region(id)
+);
+
+-- terms: 이용 약관 테이블
+CREATE TABLE terms (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(20),
+    body TEXT,
+    optional BOOLEAN,
+    created_at DATETIME(6),
+    updated_at DATETIME(6)
+);
+
+-- food_category: 음식 카테고리 테이블
+CREATE TABLE food_category (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(15),
+    Column4 VARCHAR(15)
+);
+
+-- member_prefer: 회원의 음식 카테고리 선호 정보
+CREATE TABLE member_prefer (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    member_id BIGINT,
+    category_id BIGINT,
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
+    FOREIGN KEY (member_id) REFERENCES member(id),
+    FOREIGN KEY (category_id) REFERENCES food_category(id)
+);
+
+-- mission: 미션 정보, 특정 가게(store)와 연결됨
+CREATE TABLE mission (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    store_id BIGINT,
+    reward INT,
+    deadline DATETIME,
+    mission_spec TEXT,
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
+    FOREIGN KEY (store_id) REFERENCES store(id)
+);
+
+-- member_mission: 회원의 미션 수행 상태 (진행중/완료 등)
+CREATE TABLE member_mission (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    member_id BIGINT,
+    mission_id BIGINT,
+    status VARCHAR(15),
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
+    FOREIGN KEY (member_id) REFERENCES member(id),
+    FOREIGN KEY (mission_id) REFERENCES mission(id)
+);
+
+-- review: 사용자 리뷰 정보 (가게와 회원 연결)
+CREATE TABLE review (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    member_id BIGINT,
+    store_id BIGINT,
+    body TEXT,
+    score FLOAT,
+    created_at DATETIME(6),
+    FOREIGN KEY (member_id) REFERENCES member(id),
+    FOREIGN KEY (store_id) REFERENCES store(id)
+);
+
+-- review_image: 리뷰에 포함된 이미지 URL
+CREATE TABLE review_image (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    review_id BIGINT,
+    store_id BIGINT,
+    image_url TEXT,
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
+    FOREIGN KEY (review_id) REFERENCES review(id),
+    FOREIGN KEY (store_id) REFERENCES store(id)
+);
+
+-- member_agree: 회원이 어떤 약관에 동의했는지 기록
+CREATE TABLE member_agree (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    member_id BIGINT,
+    terms_id BIGINT,
+    created_at DATETIME(6),
+    updated_at DATETIME(6),
+    FOREIGN KEY (member_id) REFERENCES member(id),
+    FOREIGN KEY (terms_id) REFERENCES terms(id)
+);
+
+-- terms 더미 데이터 삽입
+INSERT INTO terms (title, body, optional, created_at, updated_at)
+VALUES 
+('Privacy Policy', 'Details about privacy.', TRUE, NOW(), NOW()), 
+('Terms of Service', 'Details about service.', FALSE, NOW(), NOW());
+
+-- 음식 카테고리 더미 데이터
+INSERT INTO food_category (name, Column4)
+VALUES 
+('Pizza', 'Food'), 
+('Burgers', 'Food');
+
+-- 회원 정보 더미 데이터
+INSERT INTO member (name, gender, age, address, spec_address, status, inactive_date, social_type, created_at, updated_at, email, point, phone_num)
+VALUES 
+('John Doe', 'Male', 28, '123 Main St', 'Suite 100', 'active', NULL, 'type1', NOW(), NOW(), 'john@example.com', 100, '010-1111-1111'),
+('Jane Doe', 'Female', 25, '456 Oak St', 'Apt 200', 'active', NULL, 'type2', NOW(), NOW(), 'jane@example.com', 200, '010-1111-1111');
+
+-- 지역 정보 더미 데이터
+INSERT INTO region (name, created_at, updated_at) 
+VALUES ('Seoul', NOW(), NOW()), ('Busan', NOW(), NOW());
+
+-- 가게 정보 더미 데이터
+INSERT INTO store (region_id, name, address, score, created_at, updated_at)
+VALUES 
+(1, 'Awesome Store', '789 Store Ave', 4.5, NOW(), NOW()), 
+(2, 'Great Shop', '101 River Rd', 4.7, NOW(), NOW());
+
+-- 미션 정보 더미 데이터
+INSERT INTO mission (store_id, reward, deadline, mission_spec, created_at, updated_at)
+VALUES 
+(1, 500, '2024-12-31 23:59:59', 'Complete 5 purchases', NOW(), NOW()),
+(2, 300, '2024-10-31 23:59:59', 'Write 2 reviews', NOW(), NOW());
+
+-- 회원의 미션 상태 기록
+INSERT INTO member_mission (member_id, mission_id, status, created_at, updated_at)
+VALUES 
+(1, 1, '진행중', NOW(), NOW()), 
+(2, 2, '진행완료', NOW(), NOW());
+
+-- 리뷰 데이터
+INSERT INTO review (member_id, store_id, body, score, created_at)
+VALUES 
+(1, 1, 'Great experience!', 5.0, NOW()), 
+(2, 2, 'Nice shop!', 4.8, NOW());
+
+-- 리뷰 이미지 데이터
+INSERT INTO review_image (review_id, store_id, image_url, created_at, updated_at)
+VALUES 
+(1, 1, 'http://example.com/image1.jpg', NOW(), NOW()), 
+(2, 2, 'http://example.com/image2.jpg', NOW(), NOW());
+
+-- 약관 동의 데이터
+INSERT INTO member_agree (member_id, terms_id, created_at, updated_at)
+VALUES 
+(1, 1, NOW(), NOW()), 
+(2, 2, NOW(), NOW());
+
+-- 회원의 음식 선호 데이터
+INSERT INTO member_prefer (member_id, category_id, created_at, updated_at)
+VALUES 
+(1, 1, NOW(), NOW()), 
+(2, 2, NOW(), NOW());
+
+-- 외래키 제약 다시 켜기
+SET FOREIGN_KEY_CHECKS = 1;
+```
 
 ---
 
